@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profiles - Modern Manager</title>
+<link rel="icon" href="./favicon.ico" type="image/x-icon">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * {
@@ -212,7 +213,13 @@ button:hover:before {
 </div>
 
 <script>
-const API = "https://stage-1-backend-production-bdc6.up.railway.app/api/profiles/";
+const API = (
+    window.location.protocol === "file:" ||
+    window.location.port === "3000" ||
+    window.location.port === "5500"
+)
+    ? "http://127.0.0.1:8000/api/profiles/"
+    : `${window.location.origin}/api/profiles/`;
 const toggleBtn = document.getElementById("toggleBtn");
 const dropdown = document.getElementById("dropdown");
 const profiles = document.getElementById("profiles");
@@ -244,12 +251,17 @@ async function addProfile() {
         });
 
         const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Request failed");
+        }
+
         alert(data.message || "Profile added successfully! 🎉");
         document.getElementById("name").value = "";
 
     } catch (err) {
         console.error(err);
-        alert("Error adding profile. Is backend running?");
+        alert(err.message || "Error adding profile. Is backend running?");
     }
 }
 
@@ -266,6 +278,10 @@ async function loadProfiles() {
     try {
         const res = await fetch(url);
         const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Request failed");
+        }
 
         profiles.innerHTML = "";
 
@@ -294,7 +310,7 @@ async function loadProfiles() {
 
     } catch (err) {
         console.error(err);
-        profiles.innerHTML = '<div class="card" style="text-align:center; color:#e74c3c;">Error loading profiles 🚨</div>';
+        profiles.innerHTML = `<div class="card" style="text-align:center; color:#e74c3c;">${err.message || "Error loading profiles 🚨"}</div>`;
     }
 }
 
@@ -302,10 +318,20 @@ async function deleteProfile(id) {
     if (!confirm("Delete this profile?")) return;
     
     try {
-        await fetch(API + id + "/", { method: "DELETE" });
+        const res = await fetch(API + id + "/", { method: "DELETE" });
+
+        if (!res.ok) {
+            let message = "Delete failed";
+            try {
+                const data = await res.json();
+                message = data.message || message;
+            } catch (e) {}
+            throw new Error(message);
+        }
+
         loadProfiles(); // Refresh
     } catch (err) {
-        alert("Delete failed");
+        alert(err.message || "Delete failed");
     }
 }
 </script>
