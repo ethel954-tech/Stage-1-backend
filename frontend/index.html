@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profiles - Modern Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 600px;
+    margin: auto;
+}
+
+h2 {
+    text-align: center;
+    color: white;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+}
+
+input, select, button {
+    width: 100%;
+    padding: 14px 18px;
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 2px solid #e1e5e9;
+    font-size: 16px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+button:hover:before {
+    left: 100%;
+}
+
+#dropdown {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.4s ease, padding 0.4s ease;
+    opacity: 0;
+    padding: 0 0px;
+}
+
+#dropdown:not(.hidden) {
+    max-height: 300px;
+    opacity: 1;
+    padding: 20px 0;
+}
+
+.hidden {
+    display: none;
+}
+
+.profile-card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.profile-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+    margin-top: 15px;
+    font-size: 14px;
+    padding: 12px !important;
+}
+
+.profile-info {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.profile-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+#profiles {
+    min-height: 100px;
+}
+
+@media (max-width: 600px) {
+    body { padding: 10px; }
+    .card { padding: 20px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>🎨 Profile Manager</h2>
+
+    <!-- ADD PROFILE -->
+    <div class="card">
+        <input type="text" id="name" placeholder="👤 Enter profile name...">
+        <button onclick="addProfile()">➕ Add Profile</button>
+    </div>
+
+    <!-- LOAD PROFILES TOGGLE -->
+    <div class="card">
+        <button id="toggleBtn" onclick="toggleDropdown()">Load Profiles ▼</button>
+
+        <div id="dropdown" class="hidden">
+            <select id="gender">
+                <option value="">All Genders</option>
+                <option value="male">👨 Male</option>
+                <option value="female">👩 Female</option>
+            </select>
+
+            <select id="age_group">
+                <option value="">All Ages</option>
+                <option value="child">👶 Child</option>
+                <option value="teenager">🧒 Teenager</option>
+                <option value="adult">🧑 Adult</option>
+                <option value="senior">👴 Senior</option>
+            </select>
+
+            <button onclick="loadProfiles()">🔍 Apply Filters</button>
+        </div>
+    </div>
+
+    <!-- PROFILES -->
+    <div id="profiles"></div>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000/api/profiles/";
+const toggleBtn = document.getElementById("toggleBtn");
+const dropdown = document.getElementById("dropdown");
+const profiles = document.getElementById("profiles");
+
+function toggleDropdown() {
+    const wasHidden = dropdown.classList.contains("hidden");
+    dropdown.classList.toggle("hidden");
+    
+    const nowHidden = dropdown.classList.contains("hidden");
+    
+    if (nowHidden && !wasHidden) {
+        // Closing: clear profiles
+        profiles.innerHTML = "";
+    }
+    
+    // Update button text
+    toggleBtn.textContent = nowHidden ? "Load Profiles ▼" : "Hide Filters ▲";
+}
+
+async function addProfile() {
+    const name = document.getElementById("name").value.trim();
+    if (!name) return alert("Please enter a name");
+
+    try {
+        const res = await fetch(API, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ name })
+        });
+
+        const data = await res.json();
+        alert(data.message || "Profile added successfully! 🎉");
+        document.getElementById("name").value = "";
+
+    } catch (err) {
+        console.error(err);
+        alert("Error adding profile. Is backend running?");
+    }
+}
+
+async function loadProfiles() {
+    const gender = document.getElementById("gender").value;
+    const age = document.getElementById("age_group").value;
+
+    let url = API;
+    const params = new URLSearchParams();
+    if (gender) params.append("gender", gender);
+    if (age) params.append("age_group", age);
+    if (params.toString()) url += "?" + params.toString();
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        profiles.innerHTML = "";
+
+        if (!data.data || data.data.length === 0) {
+            profiles.innerHTML = '<div class="card" style="text-align:center; color:#666;">No profiles found matching filters 😔</div>';
+            return;
+        }
+
+        data.data.forEach((profile, index) => {
+            const div = document.createElement("div");
+            div.className = "profile-card";
+            div.style.animationDelay = `${index * 0.1}s`;
+            
+            div.innerHTML = `
+                <div class="profile-info">
+                    <div class="profile-name">${profile.name}</div>
+                    Gender: <strong>${profile.gender}</strong><br>
+                    Age: <strong>${profile.age}</strong> (${profile.age_group})<br>
+                    Country: <strong>${profile.country_id}</strong>
+                </div>
+                <button class="delete-btn" onclick="deleteProfile('${profile.id}')">🗑️ Delete</button>
+            `;
+            
+            profiles.appendChild(div);
+        });
+
+    } catch (err) {
+        console.error(err);
+        profiles.innerHTML = '<div class="card" style="text-align:center; color:#e74c3c;">Error loading profiles 🚨</div>';
+    }
+}
+
+async function deleteProfile(id) {
+    if (!confirm("Delete this profile?")) return;
+    
+    try {
+        await fetch(API + id + "/", { method: "DELETE" });
+        loadProfiles(); // Refresh
+    } catch (err) {
+        alert("Delete failed");
+    }
+}
+</script>
+
+</body>
+</html>
