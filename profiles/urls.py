@@ -1,11 +1,19 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
+
 from .views import ProfileViewSet
 
-router = DefaultRouter()
-router.register(r'profiles', ProfileViewSet, basename='profiles')
+profile_list = ProfileViewSet.as_view({
+    "get": "list",
+    "post": "create",
+})
+profile_detail = ProfileViewSet.as_view({
+    "get": "retrieve",
+    "delete": "destroy",
+})
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("profiles", profile_list, name="profile-list"),
+    path("profiles/", profile_list, name="profile-list-slash"),
+    path("profiles/<uuid:pk>", profile_detail, name="profile-detail"),
+    path("profiles/<uuid:pk>/", profile_detail, name="profile-detail-slash"),
 ]
-
