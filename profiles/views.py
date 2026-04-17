@@ -35,31 +35,20 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
         if not name:
             return Response({
-                'status': 'error',
+                 'status': 'error',
                 'message': 'Name is required'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if Profile.objects.filter(name=name).exists():
-            profile = Profile.objects.get(name=name)
-            serializer = self.get_serializer(profile)
+        if not isinstance(name, str):
             return Response({
-                'status': 'success',
-                'message': 'Profile already exists',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
+               'status': 'error',
+                'message': 'Invalid name'
+             }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            profile = serializer.save()
-            return Response({
-                'status': 'success',
-                'data': serializer.data
-            }, status=status.HTTP_201_CREATED)
-
-        return Response({
-            'status': 'error',
-            'message': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+             return Response({
+                'status': 'error',
+                'message': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
