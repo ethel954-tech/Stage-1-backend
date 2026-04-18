@@ -50,8 +50,8 @@ class ProfileAPITests(TestCase):
         self.assertIn("created_at", response.data["data"])
 
     @patch("profiles.serializers.requests.get")
-    def test_create_profile_duplicate_returns_existing_profile(self, mock_get):
-        profile = Profile.objects.create(
+    def test_create_profile_duplicate_returns_400(self, mock_get):
+        Profile.objects.create(
             name="ella",
             gender="female",
             gender_probability=0.99,
@@ -64,10 +64,11 @@ class ProfileAPITests(TestCase):
 
         response = self.client.post("/api/profiles/", {"name": "Ella"}, format="json")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["status"], "success")
-        self.assertEqual(response.data["message"], "Profile already exists")
-        self.assertEqual(response.data["data"]["id"], str(profile.id))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {"status": "error", "message": "Profile already exists"},
+        )
         self.assertEqual(Profile.objects.count(), 1)
         mock_get.assert_not_called()
 

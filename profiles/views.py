@@ -26,73 +26,66 @@ class ProfileViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         params = self.request.query_params
 
-        gender = params.get("gender")
-        country_id = params.get("country_id")
-        age_group = params.get("age_group")
-
-        if gender:
-            queryset = queryset.filter(gender__iexact=gender)
-        if country_id:
-            queryset = queryset.filter(country_id__iexact=country_id)
-        if age_group:
-            queryset = queryset.filter(age_group__iexact=age_group)
+        if params.get("gender"):
+            queryset = queryset.filter(gender__iexact=params.get("gender"))
+        if params.get("age_group"):
+            queryset = queryset.filter(age_group__iexact=params.get("age_group"))
+        if params.get("country_id"):
+            queryset = queryset.filter(country_id__iexact=params.get("country_id"))
 
         return queryset
 
     def create(self, request, *args, **kwargs):
-        if "name" not in request.data:
+        name = request.data.get("name")
+
+        # ✅ Missing or empty
+        if name is None or name == "":
             return Response(
-                {"status": "error", "message": "Missing or empty name"},
+                {"status": "error", "message": "Name is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        name = request.data.get("name")
-
+        # ✅ Invalid type
         if not isinstance(name, str):
             return Response(
-                {"status": "error", "message": "Invalid type"},
+                {"status": "error", "message": "Invalid name"},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        if not name.strip():
+        normalized_name = name.strip()
+
+        if not normalized_name:
             return Response(
-                {"status": "error", "message": "Missing or empty name"},
+                {"status": "error", "message": "Name is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        normalized_name = name.strip().lower()
-        existing_profile = Profile.objects.filter(name__iexact=normalized_name).first()
-
-        if existing_profile:
+        # ✅ Duplicate
+        if Profile.objects.filter(name__iexact=normalized_name).exists():
             return Response(
-                {
-                    "status": "success",
-                    "message": "Profile already exists",
-                    "data": ProfileSerializer(existing_profile).data,
-                },
-                status=status.HTTP_200_OK,
+                {"status": "error", "message": "Profile already exists"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ✅ ONLY pass clean data to serializer
         serializer = self.get_serializer(data={"name": normalized_name})
 
         if not serializer.is_valid():
-            error_message = self._extract_error_message(serializer.errors)
-            status_code = (
-                status.HTTP_422_UNPROCESSABLE_ENTITY
-                if error_message == "Invalid type"
-                else status.HTTP_400_BAD_REQUEST
-            )
             return Response(
-                {"status": "error", "message": error_message},
-                status=status_code,
+                {
+                    "status": "error",
+                    "message": self._extract_error_message(serializer.errors),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
             profile = serializer.save()
-        except ExternalAPIError as exc:
+        except ExternalAPIError:
+            # ✅ FIX: don't return 502 for bad input
             return Response(
-                {"status": "error", "message": str(exc)},
-                status=status.HTTP_502_BAD_GATEWAY,
+                {"status": "error", "message": "Invalid name"},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         except requests.RequestException:
             return Response(
@@ -106,16 +99,14 @@ class ProfileViewSet(viewsets.ModelViewSet):
             )
 
         return Response(
-            {
-                "status": "success",
-                "data": ProfileSerializer(profile).data,
-            },
+            {"status": "success", "data": ProfileSerializer(profile).data},
             status=status.HTTP_201_CREATED,
         )
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
+
         return Response(
             {
                 "status": "success",
@@ -126,27 +117,23 @@ class ProfileViewSet(viewsets.ModelViewSet):
         )
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ProfileSerializer(instance)
+        profile = self.get_object()
+        serializer = ProfileSerializer(profile)
+
         return Response(
-            {
-                "status": "success",
-                "data": serializer.data,
-            },
+            {"status": "success", "data": serializer.data},
             status=status.HTTP_200_OK,
         )
 
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.delete()
+        profile = self.get_object()
+        profile.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def handle_exception(self, exc):
         response = super().handle_exception(exc)
-        if response is None:
-            return response
 
-        if response.status_code == status.HTTP_404_NOT_FOUND:
+        if response and response.status_code == status.HTTP_404_NOT_FOUND:
             return Response(
                 {"status": "error", "message": "Profile not found"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -157,13 +144,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _extract_error_message(errors):
         if isinstance(errors, dict):
-            first_value = next(iter(errors.values()), None)
-            if isinstance(first_value, list) and first_value:
-                return str(first_value[0])
-            if isinstance(first_value, dict):
-                return ProfileViewSet._extract_error_message(first_value)
-            if first_value:
-                return str(first_value)
+            first = next(iter(errors.values()), None)
+            if isinstance(first, list) and first:
+                return str(first[0])
+            if isinstance(first, dict):
+                return ProfileViewSet._extract_error_message(first)
+            if first:
+                return str(first)
 
         if isinstance(errors, list) and errors:
             return str(errors[0])
