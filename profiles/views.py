@@ -62,11 +62,17 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
         # ✅ Duplicate
         if Profile.objects.filter(name__iexact=normalized_name).exists():
-            return Response(
-                {"status": "error", "message": "Profile already exists"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            profile = Profile.objects.get(name__iexact=normalized_name)
 
+            return Response(
+                {
+                    "status": "success",
+                    "message": "Profile already exists",
+                    "data": ProfileSerializer(profile).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        
         # ✅ ONLY pass clean data to serializer
         serializer = self.get_serializer(data={"name": normalized_name})
 
