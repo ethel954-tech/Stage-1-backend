@@ -12,11 +12,11 @@ class Profile(models.Model):
     gender = models.CharField(max_length=10)
     gender_probability = models.FloatField()
     sample_size = models.IntegerField()
-    age = models.IntegerField(null=True, blank=True)
-    age_group = models.CharField(max_length=20, null=True, blank=True)
-    country_id = models.CharField(max_length=10, null=True, blank=True)
-    country_name = models.CharField(max_length=100, blank=True, null=True)
-    country_probability = models.FloatField(null=True, blank=True)
+    age = models.IntegerField()
+    age_group = models.CharField(max_length=20)
+    country_id = models.CharField(max_length=10)
+    country_name = models.CharField(max_length=100, blank=True, null=True)  # NEW
+    country_probability = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

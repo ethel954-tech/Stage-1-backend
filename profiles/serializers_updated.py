@@ -13,21 +13,13 @@ class ExternalAPIError(Exception):
 def get_age_group(age):
     if age is None:
         return None
-    if age is None: return None
-    if age <= 12: return "child"
-    if age <= 19: return "teenager"
-    if age <= 59: return "adult"
+    if age <= 12:
+        return "child"
+    if age <= 19:
+        return "teenager"
+    if age <= 59:
+        return "adult"
     return "senior"
-
-def get_full_country_name(code):
-    mapping = {
-        "NG": "Nigeria", "BJ": "Benin", "KE": "Kenya", "GH": "Ghana", 
-        "ZA": "South Africa", "AO": "Angola", "US": "United States", 
-        "GB": "United Kingdom", "CA": "Canada", "AU": "Australia", 
-        "DE": "Germany", "FR": "France", "IN": "India", "BR": "Brazil",
-        "TG": "Togo", "UG": "Uganda", "RW": "Rwanda", "EG": "Egypt", "MA": "Morocco"
-    }
-    return mapping.get(code.upper(), code.upper() if code else None)
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -42,7 +34,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "age",
             "age_group",
             "country_id",
-            "country_name",
+            "country_name",  # NEW
             "country_probability",
             "created_at",
         ]
@@ -59,10 +51,7 @@ class ProfileListSerializer(serializers.ModelSerializer):
             "age",
             "age_group",
             "country_id",
-            "country_name",
-            "gender_probability",
-            "country_probability",
-            "created_at",
+            "country_name",  # NEW
         ]
 
 
@@ -94,6 +83,7 @@ class ProfileCreateSerializer(serializers.Serializer):
         age_data = self._get_json(f"https://api.agify.io?name={name}")
         country_data = self._get_json(f"https://api.nationalize.io?name={name}")
 
+        # Safe extraction
         gender = gender_data.get("gender")
         gender_probability = gender_data.get("probability", 0.0)
         sample_size = gender_data.get("count", 0)
@@ -109,9 +99,23 @@ class ProfileCreateSerializer(serializers.Serializer):
             top_country = max(countries, key=lambda item: item["probability"])
             country_id = top_country.get("country_id")
             country_probability = top_country.get("probability", 0.0)
-            country_name = get_full_country_name(country_id)
+            # Map country_id to name (static mapping for common countries)
+            country_names = {
+                "US": "United States",
+                "NG": "Nigeria",
+                "KE": "Kenya",
+                "GB": "United Kingdom",
+                "CA": "Canada",
+                "AU": "Australia",
+                "DE": "Germany",
+                "FR": "France",
+                "IN": "India",
+                "BR": "Brazil",
+                # Add more as needed
+            }
+            country_name = country_names.get(country_id, country_id.upper())
 
-        return Profile.objects.create(
+        profile = Profile.objects.create(
             name=name,
             gender=gender,
             gender_probability=gender_probability,
@@ -122,3 +126,5 @@ class ProfileCreateSerializer(serializers.Serializer):
             country_name=country_name,
             country_probability=country_probability,
         )
+        return profile
+

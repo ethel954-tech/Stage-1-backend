@@ -52,4 +52,18 @@ Country: 1
 
 Profiles persist in SQLite. API ready for extensions (auth/charts/export).
 
+## 🧠 Natural Language Query Engine
+### Approach
+Our parsing logic uses rule-based tokenization and regular expressions:
+- **Gender:** Maps synonyms (males, guys, ladies) to strict gender categories.
+- **Age Groups:** Recognizes keywords like "teenager" or "adult" to apply `age_group` filters.
+- **Young Keyword:** Specifically maps "young" to the age range **16-24** (min_age=16, max_age=24).
+- **Numerical Logic:** Detects phrases like "above X" or "over X" to apply `gte` filters.
+- **Geographic Mapping:** A predefined ISO mapping converts country names (e.g., "Nigeria") to `country_id` ("NG").
+
+### Limitations
+- **Complex Logic:** Does not support nested boolean queries (e.g., "males from Nigeria AND females from Kenya").
+- **Typos:** Matching is keyword-specific; misspelled country names will not be recognized.
+- **Negation:** The parser does not handle negative constraints (e.g., "not from USA").
+
 **Built with ❤️ by BLACKBOXAI** – Modern, beautiful, functional!
