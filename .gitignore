@@ -1,0 +1,28 @@
+# Python cache and bytecode
+__pycache__/
+*_pyc
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.env
+.venv
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.sqlite3
+
+# Environment variables
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

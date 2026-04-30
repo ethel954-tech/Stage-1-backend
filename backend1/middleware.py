@@ -31,7 +31,9 @@ class APIVersionMiddleware:
 class RateLimitMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
-        self.requests = {}
+        # Use a class-level dict that persists across requests
+        if not hasattr(RateLimitMiddleware, '_rate_limits'):
+            RateLimitMiddleware._rate_limits = {}
 
     def _get_client_id(self, request):
         # Use user ID if authenticated, otherwise IP
@@ -43,7 +45,7 @@ class RateLimitMiddleware:
         return request.META.get('REMOTE_ADDR', 'unknown')
 
     def __call__(self, request):
-        if request.path.startswith('/auth/github/'):
+        if request.path.startswith('/auth/github'):
             limit = 10
             window = 60
         elif request.path.startswith('/auth/'):
@@ -56,22 +58,28 @@ class RateLimitMiddleware:
             return self.get_response(request)
 
         client_id = self._get_client_id(request)
-        key = f"{client_id}:{request.path.split('/')[1]}"
+        # Use path segments correctly
+        path_parts = request.path.strip('/').split('/')
+        if len(path_parts) >= 2:
+            endpoint = path_parts[1] if path_parts[0] in ['auth', 'api'] else path_parts[0]
+        else:
+            endpoint = request.path
+        key = f"{client_id}:{endpoint}"
         now = time.time()
 
-        if key not in self.requests:
-            self.requests[key] = []
+        if key not in RateLimitMiddleware._rate_limits:
+            RateLimitMiddleware._rate_limits[key] = []
 
         # Clean old requests
-        self.requests[key] = [t for t in self.requests[key] if now - t < window]
+        RateLimitMiddleware._rate_limits[key] = [t for t in RateLimitMiddleware._rate_limits[key] if now - t < window]
 
-        if len(self.requests[key]) >= limit:
+        if len(RateLimitMiddleware._rate_limits[key]) >= limit:
             return JsonResponse(
                 {"status": "error", "message": "Rate limit exceeded. Try again later."},
                 status=429
             )
 
-        self.requests[key].append(now)
+        RateLimitMiddleware._rate_limits[key].append(now)
         response = self.get_response(request)
         return response
 
