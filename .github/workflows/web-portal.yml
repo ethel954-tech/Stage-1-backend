@@ -1,0 +1,25 @@
+name: Web Portal CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check web portal files exist
+        run: |
+          test -f web-portal/index.html
+          test -f web-portal/dashboard.html
+          test -f web-portal/profiles.html
+          test -f web-portal/search.html
+          test -f web-portal/account.html
+          test -f web-portal/profile.html
+      - name: Validate HTML
+        run: |
+          pip install html5lib
+          for f in web-portal/*.html; do echo "Checking $f"; python -c "import html5lib; html5lib.parse(open('$f').read())"; done

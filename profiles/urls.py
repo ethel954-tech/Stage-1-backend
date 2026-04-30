@@ -12,12 +12,17 @@ profile_detail = ProfileViewSet.as_view({
 profile_search = ProfileViewSet.as_view({
     "get": "search",
 })
+profile_export = ProfileViewSet.as_view({
+    "get": "export",
+})
 
 urlpatterns = [
     path("profiles", profile_list, name="profile-list"),
     path("profiles/", profile_list, name="profile-list-slash"),
+    path("profiles/export", profile_export, name="profile-export"),
+    path("profiles/export/", profile_export, name="profile-export-slash"),
     path("profiles/<uuid:pk>", profile_detail, name="profile-detail"),
     path("profiles/<uuid:pk>/", profile_detail, name="profile-detail-slash"),
-    path("profiles/search/", profile_search, name="profile-search"),  # NEW
+    path("profiles/search/", profile_search, name="profile-search"),
 ]
 
